@@ -12,9 +12,11 @@ const productCategories = categories.filter((c) => c.id !== "new");
 type Props = {
   mode: "create" | "edit";
   product?: AdminProduct;
+  /** Після створення — підказка, що можна одразу правити */
+  justCreated?: boolean;
 };
 
-export function ProductForm({ mode, product }: Props) {
+export function ProductForm({ mode, product, justCreated }: Props) {
   const router = useRouter();
   const [name, setName] = useState(product?.name ?? "");
   const [price, setPrice] = useState(String(product?.price ?? ""));
@@ -33,6 +35,7 @@ export function ProductForm({ mode, product }: Props) {
   const [imageAssetId, setImageAssetId] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedOk, setSavedOk] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -55,6 +58,7 @@ export function ProductForm({ mode, product }: Props) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSavedOk(false);
     const priceNum = Number(price);
     if (!name.trim() || !priceNum) {
       setError("Вкажіть назву і ціну");
@@ -88,11 +92,28 @@ export function ProductForm({ mode, product }: Props) {
       setError(data.error ?? "Не збережено");
       return;
     }
-    router.push("/admin/products");
+    const data = (await res.json()) as { id?: string };
+    if (mode === "create" && data.id) {
+      router.push(`/admin/products/${encodeURIComponent(data.id)}/edit?created=1`);
+      router.refresh();
+      return;
+    }
+    setSavedOk(true);
+    router.refresh();
   }
 
   return (
     <form onSubmit={submit} className="space-y-6">
+      {justCreated ? (
+        <p className="rounded-2xl border border-forest/20 bg-forest/5 px-4 py-3 text-sm font-medium text-forest">
+          Товар додано. Якщо щось не так — змініть нижче і натисніть «Зберегти» ще раз.
+        </p>
+      ) : null}
+      {savedOk ? (
+        <p className="rounded-2xl border border-forest/20 bg-forest/5 px-4 py-3 text-sm font-medium text-forest">
+          Збережено.
+        </p>
+      ) : null}
       <section className="rounded-2xl border border-line bg-white p-6 shadow-sm">
         <h2 className="font-display text-2xl text-forest">
           {mode === "create" ? "Новий товар" : "Редагувати товар"}

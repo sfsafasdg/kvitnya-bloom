@@ -1,7 +1,7 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { adminCreateProduct, type ProductInput } from "@/lib/admin-sanity";
+import { revalidateStorefront } from "@/lib/revalidate-catalog";
 
 export async function POST(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -12,9 +12,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Заповніть назву, категорію і ціну" }, { status: 400 });
   }
   try {
-    const id = await adminCreateProduct(body);
-    revalidatePath("/", "layout");
-    return NextResponse.json({ ok: true, id });
+    const { id, slug } = await adminCreateProduct(body);
+    revalidateStorefront(slug, id);
+    return NextResponse.json({ ok: true, id, slug });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "Не вдалося зберегти" }, { status: 500 });

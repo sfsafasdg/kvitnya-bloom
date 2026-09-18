@@ -1,6 +1,6 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { revalidateStorefront } from "@/lib/revalidate-catalog";
 import {
   adminDeleteProduct,
   adminUpdateProduct,
@@ -17,7 +17,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   const body = (await request.json()) as ProductInput;
   try {
     await adminUpdateProduct(id, body);
-    revalidatePath("/", "layout");
+    revalidateStorefront(undefined, id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -32,7 +32,7 @@ export async function DELETE(_request: Request, { params }: Ctx) {
   const { id } = await params;
   try {
     await adminDeleteProduct(id);
-    revalidatePath("/", "layout");
+    revalidateStorefront();
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);

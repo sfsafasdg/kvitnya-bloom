@@ -1,8 +1,8 @@
-import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { adminUpdateStore } from "@/lib/admin-sanity";
 import type { StoreSettings } from "@/lib/catalog";
+import { revalidateStorefront } from "@/lib/revalidate-catalog";
 
 export async function PUT(request: Request) {
   if (!(await isAdminAuthenticated())) {
@@ -11,7 +11,7 @@ export async function PUT(request: Request) {
   const body = (await request.json()) as StoreSettings;
   try {
     await adminUpdateStore(body);
-    revalidatePath("/", "layout");
+    revalidateStorefront();
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error(e);

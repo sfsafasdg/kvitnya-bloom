@@ -20,6 +20,7 @@ export function DeleteProductButton({
       method: "DELETE",
     });
     router.push("/admin/products");
+    router.refresh();
   }
 
   return (

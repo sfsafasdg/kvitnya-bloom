@@ -4,6 +4,8 @@ import { adminListProducts } from "@/lib/admin-sanity";
 import { formatPrice } from "@/lib/format";
 import { getCategoryTitle } from "@/data/categories";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminProductsPage() {
   const products = await adminListProducts();
 

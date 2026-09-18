@@ -1,14 +1,16 @@
+import { unstable_cache } from "next/cache";
+import { createClient } from "next-sanity";
 import { store as staticStore } from "@/data/store";
 import { products as staticProducts } from "@/data/products";
 import { mapSanityProduct } from "@/sanity/mapProduct";
-import { getSanityReadClient } from "@/sanity/client";
-import { isSanityConfigured } from "@/sanity/env";
+import { isSanityConfigured, sanityEnv } from "@/sanity/env";
 import {
   productBySlugQuery,
   productsQuery,
   storeSettingsQuery,
 } from "@/sanity/queries";
 import type { Product } from "@/lib/types";
+import { CATALOG_CACHE_TAG } from "@/lib/revalidate-catalog";
 
 export type StoreSettings = {
   name: string;
@@ -23,14 +25,31 @@ export type StoreSettings = {
   instagramHandle: string;
 };
 
+function sanityCatalogClient() {
+  return createClient({
+    ...sanityEnv,
+    useCdn: false,
+  });
+}
+
+async function loadProductsFromSanity(): Promise<Product[]> {
+  const docs = await sanityCatalogClient().fetch<
+    Parameters<typeof mapSanityProduct>[0][]
+  >(productsQuery);
+  if (!docs?.length) return staticProducts;
+  return docs.map(mapSanityProduct);
+}
+
+const getCachedProducts = unstable_cache(
+  loadProductsFromSanity,
+  ["bloom-catalog-products"],
+  { tags: [CATALOG_CACHE_TAG], revalidate: 15 },
+);
+
 export async function fetchProducts(): Promise<Product[]> {
   if (!isSanityConfigured()) return staticProducts;
   try {
-    const docs = await getSanityReadClient().fetch<Parameters<
-      typeof mapSanityProduct
-    >[0][]>(productsQuery);
-    if (!docs?.length) return staticProducts;
-    return docs.map(mapSanityProduct);
+    return await getCachedProducts();
   } catch {
     return staticProducts;
   }
@@ -43,7 +62,7 @@ export async function fetchProductBySlug(
     return staticProducts.find((p) => p.slug === slug);
   }
   try {
-    const doc = await getSanityReadClient().fetch<
+    const doc = await sanityCatalogClient().fetch<
       Parameters<typeof mapSanityProduct>[0] | null
     >(productBySlugQuery, { slug });
     if (!doc) {
@@ -63,7 +82,7 @@ export async function fetchAllProductSlugs(): Promise<string[]> {
 export async function fetchStoreSettings(): Promise<StoreSettings> {
   if (!isSanityConfigured()) return { ...staticStore };
   try {
-    const doc = await getSanityReadClient().fetch<StoreSettings | null>(
+    const doc = await sanityCatalogClient().fetch<StoreSettings | null>(
       storeSettingsQuery,
     );
     if (!doc) return { ...staticStore };

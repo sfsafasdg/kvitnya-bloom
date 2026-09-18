@@ -2,6 +2,7 @@ import { createClient, type SanityClient } from "next-sanity";
 import { isSanityConfigured, sanityEnv } from "./env";
 
 let readClient: SanityClient | undefined;
+let freshReadClient: SanityClient | undefined;
 
 export function getSanityReadClient(): SanityClient {
   if (!isSanityConfigured()) {
@@ -14,6 +15,20 @@ export function getSanityReadClient(): SanityClient {
     });
   }
   return readClient;
+}
+
+/** Адмінка — без CDN, щоб нові/змінені товари були видні одразу після збереження */
+export function getSanityFreshReadClient(): SanityClient {
+  if (!isSanityConfigured()) {
+    throw new Error("Sanity is not configured");
+  }
+  if (!freshReadClient) {
+    freshReadClient = createClient({
+      ...sanityEnv,
+      useCdn: false,
+    });
+  }
+  return freshReadClient;
 }
 
 export function sanityWriteClient() {

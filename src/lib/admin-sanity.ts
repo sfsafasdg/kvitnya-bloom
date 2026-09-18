@@ -1,4 +1,4 @@
-import { getSanityReadClient, sanityWriteClient } from "@/sanity/client";
+import { getSanityFreshReadClient, sanityWriteClient } from "@/sanity/client";
 import { isSanityConfigured } from "@/sanity/env";
 import { mapSanityProduct } from "@/sanity/mapProduct";
 import { productsQuery, storeSettingsQuery } from "@/sanity/queries";
@@ -29,7 +29,7 @@ const adminProductFields = `{
 
 export async function adminListProducts(): Promise<AdminProduct[]> {
   if (!isSanityConfigured()) return [];
-  const docs = await getSanityReadClient().fetch<
+  const docs = await getSanityFreshReadClient().fetch<
     (Parameters<typeof mapSanityProduct>[0] & { _id: string })[]
   >(`*[_type == "product"] | order(name asc) ${adminProductFields}`);
   return docs.map((d) => ({ ...mapSanityProduct(d), sanityId: d._id }));
@@ -37,7 +37,7 @@ export async function adminListProducts(): Promise<AdminProduct[]> {
 
 export async function adminGetProduct(sanityId: string): Promise<AdminProduct | null> {
   if (!isSanityConfigured()) return null;
-  const doc = await getSanityReadClient().fetch<
+  const doc = await getSanityFreshReadClient().fetch<
     (Parameters<typeof mapSanityProduct>[0] & { _id: string }) | null
   >(`*[_type == "product" && _id == $id][0] ${adminProductFields}`, { id: sanityId });
   if (!doc) return null;
@@ -46,7 +46,7 @@ export async function adminGetProduct(sanityId: string): Promise<AdminProduct | 
 
 export async function adminGetStore(): Promise<StoreSettings | null> {
   if (!isSanityConfigured()) return null;
-  return getSanityReadClient().fetch<StoreSettings | null>(storeSettingsQuery);
+  return getSanityFreshReadClient().fetch<StoreSettings | null>(storeSettingsQuery);
 }
 
 export type OrderLineRow = {
@@ -74,7 +74,7 @@ export type OrderRow = {
 
 export async function adminListOrders(): Promise<OrderRow[]> {
   if (!isSanityConfigured()) return [];
-  return getSanityReadClient().fetch<OrderRow[]>(
+  return getSanityFreshReadClient().fetch<OrderRow[]>(
     `*[_type == "order"] | order(placedAt desc) [0...100] {
       _id,
       orderNumber,
@@ -107,7 +107,9 @@ export type ProductInput = {
   legacyImagePath?: string;
 };
 
-export async function adminCreateProduct(input: ProductInput): Promise<string> {
+export async function adminCreateProduct(
+  input: ProductInput,
+): Promise<{ id: string; slug: string }> {
   const client = sanityWriteClient();
   const baseSlug = slugifyName(input.name);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -131,7 +133,14 @@ export async function adminCreateProduct(input: ProductInput): Promise<string> {
         ? { legacyImagePath: input.legacyImagePath }
         : {}),
   });
-  return doc._id;
+  return { id: doc._id, slug };
+}
+
+export async function adminCountNewOrders(): Promise<number> {
+  if (!isSanityConfigured()) return 0;
+  return getSanityFreshReadClient().fetch<number>(
+    `count(*[_type == "order" && status == "new"])`,
+  );
 }
 
 export async function adminUpdateProduct(
