@@ -1,4 +1,4 @@
-import type { SortKey } from "@/data/products";
+import type { SortKey } from "@/context/CatalogContext";
 
 const options: { value: SortKey; label: string }[] = [
   { value: "newest", label: "Спочатку новіші" },

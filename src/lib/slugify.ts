@@ -1,0 +1,48 @@
+const uk: Record<string, string> = {
+  а: "a",
+  б: "b",
+  в: "v",
+  г: "h",
+  ґ: "g",
+  д: "d",
+  е: "e",
+  є: "ie",
+  ж: "zh",
+  з: "z",
+  и: "y",
+  і: "i",
+  ї: "i",
+  й: "i",
+  к: "k",
+  л: "l",
+  м: "m",
+  н: "n",
+  о: "o",
+  п: "p",
+  р: "r",
+  с: "s",
+  т: "t",
+  у: "u",
+  ф: "f",
+  х: "kh",
+  ц: "ts",
+  ч: "ch",
+  ш: "sh",
+  щ: "shch",
+  ь: "",
+  ю: "iu",
+  я: "ia",
+  "'": "",
+  "’": "",
+};
+
+export function slugifyName(name: string): string {
+  const lower = name.trim().toLowerCase();
+  let out = "";
+  for (const ch of lower) {
+    if (uk[ch] !== undefined) out += uk[ch];
+    else if (/[a-z0-9]/.test(ch)) out += ch;
+    else if (/\s|-/.test(ch)) out += "-";
+  }
+  return out.replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "tovar";
+}

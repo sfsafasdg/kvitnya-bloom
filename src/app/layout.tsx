@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import { EB_Garamond, Manrope } from "next/font/google";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
-import { Providers } from "./providers";
 import "./globals.css";
 
 const ebGaramond = EB_Garamond({
@@ -33,13 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="uk"
       className={`${ebGaramond.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans text-forest">
-        <Providers>
-          <Header />
-          <main className="flex-1 overflow-x-hidden">{children}</main>
-          <Footer />
-        </Providers>
-      </body>
+      <body className="flex min-h-full flex-col font-sans text-forest">{children}</body>
     </html>
   );
 }

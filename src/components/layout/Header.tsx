@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/ui/Container";
-import { store } from "@/data/store";
+import { useCatalog } from "@/context/CatalogContext";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/cn";
 
@@ -14,6 +14,7 @@ const nav = [
 ];
 
 export function Header() {
+  const { store } = useCatalog();
   const { itemCount } = useCart();
   const [open, setOpen] = useState(false);
   const [cartBump, setCartBump] = useState(false);

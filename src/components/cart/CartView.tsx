@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { getProductById, getProductPrice } from "@/data/products";
+import { useCatalog } from "@/context/CatalogContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { ProductPrice } from "@/components/ui/ProductPrice";
 
 export function CartView() {
+  const { getProductById, getProductPrice } = useCatalog();
   const { lines, subtotal, setQuantity, removeItem, lineKey } = useCart();
 
   if (lines.length === 0) {

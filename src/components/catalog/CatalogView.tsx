@@ -3,12 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { categories, getCategoryTitle } from "@/data/categories";
-import {
-  filterProducts,
-  products,
-  sortProducts,
-  type SortKey,
-} from "@/data/products";
+import { useCatalog, type SortKey } from "@/context/CatalogContext";
 import type { CategoryId } from "@/lib/types";
 import { ProductCard } from "@/components/product/ProductCard";
 import { SortSelect } from "@/components/catalog/SortSelect";
@@ -22,6 +17,7 @@ function parseCategory(param: string | null): CategoryId {
 }
 
 export function CatalogView() {
+  const { products, filterProducts, sortProducts } = useCatalog();
   const searchParams = useSearchParams();
   const param = searchParams.get("category");
 

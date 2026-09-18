@@ -1,18 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import { useCatalog } from "@/context/CatalogContext";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/Container";
 
-function getFeaturedProducts() {
+export function HomeCatalogPreview() {
+  const { products } = useCatalog();
   const popular = products.filter((p) => p.isPopular);
   const rest = products.filter((p) => !p.isPopular);
-  return [...popular, ...rest].slice(0, 8);
-}
-
-export function HomeCatalogPreview() {
-  const featured = getFeaturedProducts();
+  const featured = [...popular, ...rest].slice(0, 8);
 
   return (
     <>

@@ -1,7 +1,10 @@
-import { store } from "@/data/store";
+"use client";
+
+import { useCatalog } from "@/context/CatalogContext";
 import { cn } from "@/lib/cn";
 
 export function InstagramIconLink({ variant = "footer" }: { variant?: "footer" | "contacts" }) {
+  const { store } = useCatalog();
   return (
     <a
       href={store.instagram}

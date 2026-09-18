@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { store } from "@/data/store";
+import { useCatalog } from "@/context/CatalogContext";
 import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { InstagramIconLink } from "@/components/ui/InstagramIconLink";
 
 export function ContactsSection() {
+  const { store } = useCatalog();
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 

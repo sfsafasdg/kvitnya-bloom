@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { categories } from "@/data/categories";
-import { store } from "@/data/store";
+import { useCatalog } from "@/context/CatalogContext";
 import { Container } from "@/components/ui/Container";
 import { InstagramIconLink } from "@/components/ui/InstagramIconLink";
 
 export function Footer() {
+  const { store } = useCatalog();
   return (
     <footer className="mt-auto border-t border-line bg-forest text-cream/85">
       <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">

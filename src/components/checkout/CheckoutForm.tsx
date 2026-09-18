@@ -3,22 +3,41 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { getProductById, getProductPrice } from "@/data/products";
+import { useCatalog } from "@/context/CatalogContext";
 import { formatPrice } from "@/lib/format";
+import {
+  digitsAfter380,
+  formatUaPhoneDisplay,
+  isValidUaPhone,
+  toE164Ua,
+} from "@/lib/phone-ua";
 import type { DeliveryMethod } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
-import { store } from "@/data/store";
+
+function isValidCustomerName(name: string): boolean {
+  const t = name.trim();
+  return t.length >= 2 && /[\p{L}]/u.test(t);
+}
 
 export function CheckoutForm() {
+  const { store, getProductById, getProductPrice } = useCatalog();
   const { lines, subtotal, clearCart } = useCart();
   const [submitted, setSubmitted] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneDigits, setPhoneDigits] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("courier");
   const [address, setAddress] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [comment, setComment] = useState("");
+
+  const phoneDisplay = formatUaPhoneDisplay(phoneDigits);
+  const phoneE164 = toE164Ua(phoneDigits);
 
   if (lines.length === 0 && !submitted) {
     return (
@@ -36,8 +55,9 @@ export function CheckoutForm() {
       <div className="mx-auto max-w-lg rounded-3xl border border-line bg-white px-8 py-16 text-center">
         <p className="font-display text-3xl text-forest">Дякуємо за замовлення!</p>
         <p className="mt-4 text-muted">
-          Це демо-концепт: заявку не відправлено на сервер. Менеджер звʼязався б з вами за
-          номером {phone || "—"} для підтвердження.
+          {orderNumber
+            ? `Замовлення ${orderNumber} прийнято. Менеджер звʼяжеться з вами за номером ${phoneDisplay}.`
+            : `Заявку отримано. Менеджер звʼяжеться з вами за номером ${phoneDisplay || "—"}.`}
         </p>
         <Button href="/" className="mt-8">
           На головну
@@ -46,10 +66,87 @@ export function CheckoutForm() {
     );
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
-    clearCart();
+    setSubmitError(null);
+    setPhoneError(null);
+    setNameError(null);
+
+    if (!isValidCustomerName(name)) {
+      setNameError("Вкажіть імʼя (мінімум 2 символи, літери).");
+      return;
+    }
+    if (!isValidUaPhone(phoneDigits)) {
+      setPhoneError("Введіть номер у форматі +380 та 9 цифр (наприклад 67 123 45 67).");
+      return;
+    }
+    setSubmitting(true);
+
+    const orderLines = lines
+      .map((line) => {
+        const product = getProductById(line.productId);
+        if (!product) return null;
+        const unitPrice = getProductPrice(product, line.sizeId);
+        const sizeLabel = product.sizes?.find((s) => s.id === line.sizeId)?.label;
+        return {
+          productId: product.id,
+          productName: product.name,
+          quantity: line.quantity,
+          unitPrice,
+          sizeLabel,
+        };
+      })
+      .filter(Boolean);
+
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: name.trim(),
+          phone: phoneE164,
+          deliveryMethod,
+          address: deliveryMethod === "courier" ? address : store.address,
+          date,
+          time,
+          comment,
+          subtotal,
+          lines: orderLines,
+        }),
+      });
+
+      const data = (await res.json()) as {
+        ok?: boolean;
+        orderNumber?: string;
+        error?: string;
+        message?: string;
+      };
+
+      if (!res.ok) {
+        if (data.error === "invalid_phone") {
+          setPhoneError("Невірний номер телефону.");
+          setSubmitting(false);
+          return;
+        }
+        if (data.error === "orders_disabled") {
+          setSubmitError(
+            data.message ??
+              "Замовлення тимчасово не налаштовані. Зверніться до адміністратора сайту.",
+          );
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(data.error ?? "submit_failed");
+      }
+
+      setOrderNumber(data.orderNumber ?? null);
+      setSubmitted(true);
+      clearCart();
+    } catch {
+      setSubmitError("Не вдалося відправити замовлення. Спробуйте ще раз або зателефонуйте нам.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -63,21 +160,38 @@ export function CheckoutForm() {
               <input
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameError(null);
+                }}
                 className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-forest/40"
                 placeholder="Ваше імʼя"
+                autoComplete="name"
               />
+              {nameError ? <p className="mt-1.5 text-xs text-blush">{nameError}</p> : null}
             </label>
             <label className="block sm:col-span-2">
               <span className="text-sm font-medium text-forest">Телефон</span>
               <input
                 required
                 type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-sm outline-none focus:border-forest/40"
-                placeholder="+38 (0__) ___-__-__"
+                inputMode="numeric"
+                autoComplete="tel"
+                value={phoneDisplay}
+                onChange={(e) => {
+                  setPhoneDigits(digitsAfter380(e.target.value));
+                  setPhoneError(null);
+                }}
+                onFocus={() => {
+                  if (phoneDigits.length === 0) setPhoneDigits("");
+                }}
+                className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-sm tabular-nums outline-none focus:border-forest/40"
+                placeholder="+380 67 123 45 67"
+                aria-invalid={phoneError ? true : undefined}
               />
+              {phoneError ? (
+                <p className="mt-1.5 text-xs text-blush">{phoneError}</p>
+              ) : null}
             </label>
           </div>
         </fieldset>
@@ -182,14 +296,25 @@ export function CheckoutForm() {
           <span>Разом</span>
           <span>{formatPrice(subtotal)}</span>
         </div>
-        <Button type="submit" className="mt-6 w-full">
-          Підтвердити замовлення
+
+        {submitError ? (
+          <p className="mt-4 text-sm text-blush">{submitError}</p>
+        ) : null}
+        <Button type="submit" className="mt-6 w-full" disabled={submitting}>
+          {submitting ? "Відправляємо…" : "Підтвердити замовлення"}
         </Button>
         <Link href="/cart" className="mt-4 block text-center text-sm text-muted hover:text-blush">
           Повернутись до кошика
         </Link>
         <p className="mt-4 text-xs leading-relaxed text-muted">
-          Натискаючи кнопку, ви погоджуєтесь з умовами обробки даних (демо-версія).
+          З умовами і тарифами доставки можна ознайомитись тут:{" "}
+          <Link
+            href="/oplata-ta-dostavka"
+            className="text-forest underline underline-offset-2 hover:text-blush"
+          >
+            Оплата та доставка
+          </Link>
+          .
         </p>
       </aside>
     </form>

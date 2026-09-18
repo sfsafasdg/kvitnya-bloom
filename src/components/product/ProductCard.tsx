@@ -46,8 +46,9 @@ export function ProductCard({
           }
           className="object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.02]"
         />
-        {(product.isNew || product.isPopular) && (
+        {(product.isNew || product.isPopular || product.isPromo) && (
           <div className="absolute left-2 top-2 flex flex-col gap-1">
+            {product.isPromo ? <ProductBadge kind="promo" /> : null}
             {product.isNew ? <ProductBadge kind="new" /> : null}
             {product.isPopular ? <ProductBadge kind="popular" /> : null}
           </div>
@@ -65,7 +66,11 @@ export function ProductCard({
             {product.name}
           </h3>
         </Link>
-        <ProductPrice amount={product.price} size="card" />
+        <ProductPrice
+          amount={product.price}
+          compareAt={product.compareAtPrice}
+          size="card"
+        />
 
         {compact ? (
           <AddToCartButton justAdded={justAdded} onClick={handleAdd} compact />

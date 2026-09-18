@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatPrice } from "@/lib/format";
-import { getProductPrice, getRelatedProducts } from "@/data/products";
+import { useCatalog } from "@/context/CatalogContext";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/Button";
 import { ProductCarousel } from "@/components/ui/ProductCarousel";
 import { ProductPrice } from "@/components/ui/ProductPrice";
 
 export function ProductPageClient({ product }: { product: Product }) {
+  const { getProductPrice, getRelatedProducts } = useCatalog();
   const { addItem, lines } = useCart();
   const [sizeId, setSizeId] = useState(product.sizes?.[0]?.id);
   const [activeImage, setActiveImage] = useState(0);
@@ -83,7 +84,11 @@ export function ProductPageClient({ product }: { product: Product }) {
             {product.name}
           </h1>
           <div className="mt-3">
-            <ProductPrice amount={price} size="page" />
+            <ProductPrice
+              amount={price}
+              compareAt={product.compareAtPrice}
+              size="page"
+            />
           </div>
 
           <p className="mt-5 text-sm leading-relaxed text-muted sm:text-[15px]">

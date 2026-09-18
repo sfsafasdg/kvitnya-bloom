@@ -18,6 +18,7 @@ export type Product = {
   slug: string;
   name: string;
   price: number;
+  compareAtPrice?: number;
   categoryId: Exclude<CategoryId, "all">;
   description: string;
   composition: string;
@@ -26,6 +27,7 @@ export type Product = {
   sizes?: ProductSize[];
   isNew?: boolean;
   isPopular?: boolean;
+  isPromo?: boolean;
   createdAt: string;
 };
 

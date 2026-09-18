@@ -8,7 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { getProductById, getProductPrice } from "@/data/products";
+import { useCatalog } from "@/context/CatalogContext";
 import type { CartLine } from "@/lib/types";
 
 const STORAGE_KEY = "bloom-flowers-cart-v1";
@@ -42,6 +42,7 @@ function loadStored(): CartLine[] {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { getProductById, getProductPrice } = useCatalog();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -106,7 +107,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           sum + getProductPrice(product, line.sizeId) * line.quantity
         );
       }, 0),
-    [lines],
+    [lines, getProductById, getProductPrice],
   );
 
   const itemCount = useMemo(
