@@ -1,6 +1,8 @@
 import { OrdersList } from "@/components/admin/OrdersList";
 import { adminListOrders } from "@/lib/admin-sanity";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminOrdersPage() {
   const orders = await adminListOrders();
   return (

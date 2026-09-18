@@ -19,8 +19,12 @@ export function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const [newOrders, setNewOrders] = useState(0);
+  /** Скільки «нових» вже бачили (зайшли в Замовлення) — бейдж без зміни статусу */
+  const [ackNewOrders, setAckNewOrders] = useState(0);
   const [orderAlert, setOrderAlert] = useState(false);
   const prevCount = useRef<number | null>(null);
+  const onOrdersPage = pathname.startsWith("/admin/orders");
+  const unseenOrders = Math.max(0, newOrders - ackNewOrders);
 
   const pollOrders = useCallback(async () => {
     try {
@@ -45,10 +49,20 @@ export function AdminShell({
   }, [pollOrders]);
 
   useEffect(() => {
-    if (pathname.startsWith("/admin/orders")) {
+    if (onOrdersPage) {
       setOrderAlert(false);
+      setAckNewOrders(newOrders);
     }
-  }, [pathname]);
+  }, [onOrdersPage, newOrders]);
+
+  useEffect(() => {
+    router.refresh();
+  }, [pathname, router]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => router.refresh(), 15_000);
+    return () => window.clearInterval(id);
+  }, [router]);
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -57,12 +71,12 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-cream text-forest">
-      {orderAlert && newOrders > 0 && !pathname.startsWith("/admin/orders") ? (
+      {orderAlert && unseenOrders > 0 && !onOrdersPage ? (
         <div className="border-b border-blush/30 bg-blush/10 px-4 py-3 sm:px-6">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-forest">
               Нове замовлення на сайті
-              {newOrders > 1 ? ` · ${newOrders} нових` : ""}
+              {unseenOrders > 1 ? ` · ${unseenOrders} нових` : ""}
             </p>
             <Link
               href="/admin/orders"
@@ -95,7 +109,7 @@ export function AdminShell({
               l.href === "/admin"
                 ? pathname === "/admin"
                 : pathname.startsWith(l.href);
-            const showBadge = l.key === "orders" && newOrders > 0;
+            const showBadge = l.key === "orders" && unseenOrders > 0;
             return (
               <Link
                 key={l.href}
@@ -113,7 +127,7 @@ export function AdminShell({
                       active ? "bg-cream text-blush" : "bg-blush text-cream"
                     }`}
                   >
-                    {newOrders > 9 ? "9+" : newOrders}
+                    {unseenOrders > 9 ? "9+" : unseenOrders}
                   </span>
                 ) : null}
               </Link>

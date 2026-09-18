@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import type { OrderRow } from "@/lib/admin-sanity";
 
@@ -41,8 +42,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 export function OrdersList({ orders: initial }: { orders: OrderRow[] }) {
+  const router = useRouter();
   const [orders, setOrders] = useState(initial);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrders(initial);
+  }, [initial]);
 
   async function setStatus(id: string, status: string) {
     setOrders((list) => list.map((o) => (o._id === id ? { ...o, status } : o)));
@@ -54,6 +60,7 @@ export function OrdersList({ orders: initial }: { orders: OrderRow[] }) {
     });
     setBusyId(null);
     if (!res.ok) setOrders(initial);
+    else router.refresh();
   }
 
   async function remove(id: string, label: string) {
@@ -63,7 +70,10 @@ export function OrdersList({ orders: initial }: { orders: OrderRow[] }) {
       method: "DELETE",
     });
     setBusyId(null);
-    if (res.ok) setOrders((list) => list.filter((o) => o._id !== id));
+    if (res.ok) {
+      setOrders((list) => list.filter((o) => o._id !== id));
+      router.refresh();
+    }
   }
 
   if (orders.length === 0) {
